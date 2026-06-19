@@ -6,7 +6,7 @@ FEL (USB), plus the installer initramfs build.
 ## Quick start
 
 ```sh
-./update.sh <headless|gui>
+./update.sh <headless|gui|pocketchip>
 ```
 
 `update.sh` fetches the latest rootfs image (prompting before downloading a newer
@@ -21,7 +21,7 @@ They differ only in *how the rootfs lands on NAND*; all three write SPL + u-boot
 the same way and auto-detect the NAND part (Hynix vs Toshiba).
 
 ```sh
-./update.sh [--flash-live | --flash-uboot | --flash-fastboot] <headless|gui>
+./update.sh [--flash-live | --flash-uboot | --flash-fastboot] <headless|gui|pocketchip>
 ```
 
 | Mode | Flag | How the rootfs is written | Image size | Status |
