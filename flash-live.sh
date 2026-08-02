@@ -59,6 +59,8 @@ wait_for_device() {
   done
   [ -n "$iface" ] || { echo " not found"; echo "gadget NIC never appeared" >&2; exit 1; }
   echo " $iface"
+  echo ">> requesting DHCP on $iface"
+  sudo dhclient -v "$iface"
   echo -n ">> waiting for $DEV_IP"
   until ping -c1 -w1 "$DEV_IP" >/dev/null 2>&1; do echo -n "."; sleep 1; done
   echo " ok"
