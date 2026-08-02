@@ -11,7 +11,6 @@ ROOTFS_TAR=${1:?usage: flash-live.sh <rootfs.tar[.gz]>}
 UBOOT=${UBOOT:-../x-chip-uboot/build/u-boot/u-boot-sunxi-with-spl.bin}
 INITRD=${INITRD:-build/initrd.uimage}
 KEY=${KEY:-assets/installer_key}                        # committed throwaway key (see assets/)
-GADGET_HOST_MAC=${GADGET_HOST_MAC:-de:ad:be:ef:53:02}   # matches init's host_addr
 DEV_IP=${DEV_IP:-192.168.81.1}
 BOOTARGS=${BOOTARGS:-'console=ttyS0,115200'}            # partitions come from the DT
 
@@ -42,14 +41,18 @@ resolve_kernel() {
     echo "could not extract installer kernel+dtb from $ROOTFS_TAR; set ZIMAGE and DTB" >&2; exit 1; }
 }
 
-# wait for the gadget nic (by pinned mac), then for the device to ping.
-# the device runs dnsmasq, so the host auto-addresses the nic (no ip/sudo).
+# Wait for any new network interface that wasn't present before the FEL call,
+# then wait for the device to ping. The device runs dnsmasq, so the host
+# auto-addresses the nic (no ip/sudo needed).
 wait_for_device() {
   local iface=""
-  echo -n ">> waiting for gadget NIC ($GADGET_HOST_MAC)"
+  echo -n ">> waiting for gadget NIC"
   for _ in $(seq 120); do
-    for a in /sys/class/net/*/address; do
-      [ "$(cat "$a" 2>/dev/null)" = "$GADGET_HOST_MAC" ] && iface=$(basename "$(dirname "$a")")
+    for candidate in $(ls /sys/class/net/); do
+      [ "$candidate" = "lo" ] && continue
+      echo "$_IFACES_BEFORE" | grep -qx "$candidate" && continue
+      iface=$candidate
+      break
     done
     [ -n "$iface" ] && break
     echo -n "."; sleep 1
@@ -142,6 +145,10 @@ echo == booting installer ==
 setenv bootargs '$BOOTARGS'
 bootz 0x42000000 0x43300000 0x43000000
 EOF
+
+# Snapshot existing interfaces before FEL so wait_for_device() can detect
+# whichever new interface the gadget brings up, regardless of its MAC.
+_IFACES_BEFORE=$(ls /sys/class/net/)
 
 echo ">> FEL loading"
 sunxi-fel -v -p uboot "$UBOOT" \
